@@ -22,6 +22,7 @@ Python .pyc and Cython .o/.so output and run:
 function component.  The rest of the Abelfunctions functionality is not
 available from within python
 """
+from __future__ import print_function
 import os
 import sys
 import shutil
