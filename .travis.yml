@@ -25,7 +25,7 @@ before_install:
 
 install: ${SAGE} setup.py build_ext --inplace
 
-script: ${SAGE} runtests.py
+script: ${SAGE} runtests.py -v
 
 notifications:
   email: false
