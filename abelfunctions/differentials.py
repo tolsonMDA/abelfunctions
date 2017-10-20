@@ -128,7 +128,9 @@ def mnuk_conditions(g, b, generic_adjoint):
     print 'r', r
     print 'type(r)', type(r)
     r = r(*args)
+    print 'r(*args)', r
     conditions = r.coefficients()
+    print 'conditions', conditions
     return conditions
 
 def recenter_curve(g, singular_point):
