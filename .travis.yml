@@ -13,7 +13,7 @@ matrix:
     - os: osx
       env:
         - SAGE_TARBALL=sage-7.1-OSX_10.11.3-x86_64.tar.bz2
-        - SAGE_SERVER=http://mirrors.mit.edu/sage/osx/intel
+        - SAGE_SERVER=http://mirrors.mit.edu/sage/osx/intel/old
 
 # download and extract Sage
 #
