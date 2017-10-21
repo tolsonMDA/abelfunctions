@@ -128,6 +128,7 @@ def mnuk_conditions(g, b, generic_adjoint):
     print 'r', r
     print 'type(r)', type(r)
     print 'r=0', r==0
+    print 'ngens', r.parent().ngens()
     r = r(*args)
     print 'r(*args)', r
     conditions = r.coefficients()
