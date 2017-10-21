@@ -105,6 +105,7 @@ def mnuk_conditions(g, b, generic_adjoint):
     r_reduced_mod_g = expr % modulus
 
     print 'r_reduced_mod_g', r_reduced_mod_g
+    print 'R.gens', R.gens()
 
     # now mod out by the denominator to get the remaining component, R(x,y). we
     # need to cast into the ring QQbar[y,*c][x] in order to do so. (note that
@@ -114,6 +115,7 @@ def mnuk_conditions(g, b, generic_adjoint):
     r = r_reduced_mod_g(v).numerator()
     r_reduced_mod_denom = r.polynomial(u) % T(denom).polynomial(u)
     print 'r', r
+    print 'gens', r.parent().gens()
     print 'r.poly', r.polynomial(u)
     print 'T(denom).polynomial(u)', T(denom).polynomial(u)
     print 'r_reduced_mod_denom', r_reduced_mod_denom
@@ -129,6 +131,8 @@ def mnuk_conditions(g, b, generic_adjoint):
     print 'type(r)', type(r)
     print 'r=0', r==0
     print 'ngens', r.parent().ngens()
+    print 'gens', r.parent().gens()
+    print 'parent'
     r = r(*args)
     print 'r(*args)', r
     conditions = r.coefficients()
