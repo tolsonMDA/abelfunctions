@@ -106,7 +106,7 @@ def mnuk_conditions(g, b, generic_adjoint):
     u,v = map(T, R.gens())
     r = r_reduced_mod_g(v).numerator()
     r_reduced_mod_denom = r.polynomial(u) % T(denom).polynomial(u)
-    print 'r_reduced_mod_denom Type', type(r_reduced_mod_denom)
+    print 'r_reduced_mod_denom', r_reduced_mod_denom.parent()
 
     # finally, coerce the result to QQbar[*c][x,y] in order to obtain the
     # coefficients as linear combinations of the c_ij's.
