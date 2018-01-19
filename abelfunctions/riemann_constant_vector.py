@@ -74,10 +74,9 @@ from abelfunctions.divisor import Place
 from abelfunctions.riemann_theta import RiemannTheta
 
 import numpy
-from numpy import dot
 from itertools import product
 
-from sage.all import cached_function
+from sage.all import cached_function, vector, Integer
 
 def initialize_half_lattice_vectors(X):
     r"""Generate a list of all half-lattice vectors.
@@ -99,15 +98,12 @@ def initialize_half_lattice_vectors(X):
     Omega = X.riemann_matrix()
 
     # compute a list of all vectors in {0,1/2}^g
-    half = list(product((0,0.5),repeat=g))
-    half_lattice_vectors = numpy.array(
-        [h1 + dot(Omega,h2) for h1 in half for h2 in half],
-        dtype=numpy.complex
-    )
+    half = map(vector, product((Integer(0), Integer(1) / 2), repeat=g))
+    half_lattice_vectors = [h1 + Omega * h2 for h1 in half for h2 in half]
     return half_lattice_vectors
 
 
-def half_lattice_filter(half_lattice_vectors, J, C, D, epsilon=1e-8):
+def half_lattice_filter(half_lattice_vectors, J, C, D, epsilon=1e-8, theta_epsilon=None):
     r"""Filter out any incorrect half-lattice vectors.
 
     This function tests if
@@ -141,18 +137,18 @@ def half_lattice_filter(half_lattice_vectors, J, C, D, epsilon=1e-8):
     """
     # construct the set of "shifted" half-lattice vectors: the vectors J(h +
     # A(D) - 0.5*A(C)) where h is a half-lattice vector
-    Z = AbelMap(D) - 0.5*AbelMap(C)
-    shifted_half_lattice_vectors = map(J, half_lattice_vectors + Z)
+    Z = vector(AbelMap(D) - Integer(1)/2*AbelMap(C))
+    shifted_half_lattice_vectors = map(lambda v: vector(J(v + Z)), half_lattice_vectors)
 
     # evaluate Riemann theta at each of these half-lattice vectors.
     theta_values = RiemannTheta.oscillatory_part(
-        shifted_half_lattice_vectors, J.Omega, epsilon=epsilon
+        shifted_half_lattice_vectors, J.Omega.numpy().astype('c16'), epsilon=theta_epsilon or epsilon
     )
     theta_values = abs(theta_values)
 
     # return only the half-lattice vectors for which the corresponding theta
     # values are less than epsilon in absolute value
-    half_lattice_vectors = half_lattice_vectors[theta_values < epsilon]
+    half_lattice_vectors = numpy.array(half_lattice_vectors)[theta_values < epsilon]
     return half_lattice_vectors
 
 
@@ -227,7 +223,7 @@ def sum_partitions(n):
     return
 
 
-def half_lattice_vector(X, C, epsilon1, epsilon2):
+def half_lattice_vector(X, C, epsilon1, epsilon2, theta_epsilon=None):
     r"""Returns an appropriate half-lattice vector for the RCV.
 
     Parameters
@@ -242,12 +238,12 @@ def half_lattice_vector(X, C, epsilon1, epsilon2):
     """
     # create the list of all half-lattice vectors
     h = initialize_half_lattice_vectors(X)
-    J = Jacobian(X)
+    J = Jacobian(X, tol=1e-20)
     g = X.genus()
 
     # filter pass #1: D = (g-1)*P0
     D = (g-1)*X.base_place
-    h = half_lattice_filter(h, J, C, D, epsilon=epsilon1)
+    h = half_lattice_filter(h, J, C, D, epsilon=epsilon1, theta_epsilon=theta_epsilon)
     if len(h) == 1:
         return h[0].T
     if len(h) == 0:
@@ -256,7 +252,7 @@ def half_lattice_vector(X, C, epsilon1, epsilon2):
     # filter pass #2: D = sum of g-1 distinct regular places
     places = find_regular_places(X,g-1)
     D = sum(places)
-    h = half_lattice_filter(h, J, C, D, epsilon=epsilon2)
+    h = half_lattice_filter(h, J, C, D, epsilon=epsilon2, theta_epsilon=theta_epsilon)
     if len(h) == 1:
         return h[0].T
     if len(h) == 0:
@@ -266,7 +262,7 @@ def half_lattice_vector(X, C, epsilon1, epsilon2):
     # computed above
     for m in sum_partitions(g-1):
         D = reduce(lambda a,b: a[0]*a[1] + b[0]*b[1], zip(m,places))
-        h = half_lattice_filter(h, J, C, D, epsilon=epsilon2)
+        h = half_lattice_filter(h, J, C, D, epsilon=epsilon2, theta_epsilon=theta_epsilon)
         if len(h) == 1:
             return h[0].T
     if len(h) == 0:
@@ -318,9 +314,8 @@ def canonical_divisor(X):
             return C
     return canonical_divisors[0]
 
-
 @cached_function
-def compute_K0(X, epsilon1, epsilon2, C):
+def compute_K0(X, epsilon1, epsilon2, C, theta_epsilon=None):
     r"""Determine a base value of the Riemann Constant Vector.
 
     Given a Riemann surface `RS` and a canonical divisor `C` compute the
@@ -340,13 +335,13 @@ def compute_K0(X, epsilon1, epsilon2, C):
         The value of the RCV at the base place of the Riemann surface.
 
     """
-    h = half_lattice_vector(X, C, epsilon1, epsilon2)
-    J = Jacobian(X)
-    K0 = J(h - 0.5*AbelMap(C))
+    h = half_lattice_vector(X, C, epsilon1, epsilon2, theta_epsilon=theta_epsilon)
+    J = Jacobian(X, tol=1e-20)
+    K0 = J(h - vector(Integer(1)/2*AbelMap(C)))
     return K0
 
 
-def RiemannConstantVector(P, epsilon1=1e-6, epsilon2=1e-8, C=None):
+def RiemannConstantVector(P, epsilon1=1e-6, epsilon2=1e-12, C=None, theta_epsilon=None):
     r"""Evaluate the Riemann constant vector at the place `P`.
 
     Internally, the value of the RCV at the base place :math:`P_0` of the
@@ -391,9 +386,9 @@ def RiemannConstantVector(P, epsilon1=1e-6, epsilon2=1e-8, C=None):
     # return K0 =K(P0) if P is the base place. otherwise, perform appropriate
     # shift by the abel map
     X = P.RS
-    J = Jacobian(X)
-    g = numpy.complex(X.genus())
-    K0 = compute_K0(X, epsilon1, epsilon2, C)
+    J = Jacobian(X, tol=1e-20)
+    g = Integer(X.genus())
+    K0 = compute_K0(X, epsilon1, epsilon2, C, theta_epsilon=theta_epsilon)
     if P == X.base_place:
         return K0
-    return J(K0 + (g-1)*AbelMap(P))
+    return J(K0 + vector((g-1)*AbelMap(P)))

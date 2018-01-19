@@ -36,7 +36,9 @@ Contents
 
 import numpy
 from sage.all import (
-    real, imag, Matrix, ZZ, QQ, RDF, CDF, GF, identity_matrix, zero_matrix)
+    real, imag, Matrix, ZZ, QQ, GF, RDF, CDF, identity_matrix, zero_matrix)
+
+from . import ComplexField as CC
 
 def Re(M):
     return M.apply_map(real)
@@ -378,16 +380,16 @@ def symmetric_transformation_matrix(Pa, Pb, S, H, Q, tol=1e-4):
     half = QQ(1)/QQ(2)
     temp = (A*Re(Pa) + B*Re(Pb)).inverse()
     CT = half*A.T*H - Re(Pb)*temp
-    CT_ZZ = CT.round().change_ring(ZZ)
+    CT_ZZ = CT.change_ring(RDF).round().change_ring(ZZ)
     C = CT_ZZ.T
 
     DT = half*B.T*H + Re(Pa)*temp
-    DT_ZZ = DT.round().change_ring(ZZ)
+    DT_ZZ = DT.change_ring(RDF).round().change_ring(ZZ)
     D = DT_ZZ.T
 
     # sanity checks: make sure C and D are integral
-    C_error = (CT.round() - CT).norm()
-    D_error = (DT.round() - DT).norm()
+    C_error = (CT_ZZ - CT).norm()
+    D_error = (DT_ZZ - DT).norm()
     if (C_error > tol) or (D_error > tol):
         raise ValueError("The symmetric transformation matrix is not integral. "
                          "Try increasing the precision of the input period "
@@ -430,9 +432,9 @@ def symmetrize_periods(Pa, Pb, tol=1e-4):
     """
     # coerce from numpy, if necessary
     if isinstance(Pa, numpy.ndarray):
-        Pa = Matrix(CDF, numpy.ascontiguousarray(Pa))
+        Pa = Matrix(CC(), numpy.ascontiguousarray(Pa))
     if isinstance(Pb, numpy.ndarray):
-        Pb = Matrix(CDF, numpy.ascontiguousarray(Pb))
+        Pb = Matrix(CC(), numpy.ascontiguousarray(Pb))
 
     # use the transposes of the period matrices and coerce to Sage matrices
     Pa = Pa.T
@@ -447,7 +449,7 @@ def symmetrize_periods(Pa, Pb, tol=1e-4):
     Gamma = symmetric_transformation_matrix(Pa, Pb, S, H, Q, tol=tol)
 
     # compute the corresponding symmetric periods
-    stacked_periods = zero_matrix(CDF, 2*g, g)
+    stacked_periods = zero_matrix(CC(), 2*g, g)
     stacked_periods[:g,:] = Pa
     stacked_periods[g:,:] = Pb
     stacked_symmetric_periods = Gamma*stacked_periods

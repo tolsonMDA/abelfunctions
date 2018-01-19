@@ -99,7 +99,11 @@ Contents
 """
 import numpy
 
-from sage.all import cached_method
+from sage.all import cached_method, matrix, floor, zero_matrix, identity_matrix
+
+from abelfunctions import ComplexField as CC
+from abelfunctions import RealField as RR
+from abelfunctions import Re, Im
 
 def fractional_part(z, tol=1e-8):
     r"""Returns the fractional part of a vector.
@@ -125,8 +129,9 @@ def fractional_part(z, tol=1e-8):
     w : array
     """
     # subtract off the integer part
-    z = numpy.array(z)
+    #z = numpy.array(z)
     w = z - numpy.floor(z)
+    #w = z - z.apply_map(floor)
 
     # zero out any component of the form
     #
@@ -134,8 +139,9 @@ def fractional_part(z, tol=1e-8):
     #
     # if any component is close to an integer, (in this case the integer should
     # be 1) set it equal to zero
-    w[numpy.isclose(w,1)] = 0
-    return w
+    #w[numpy.isclose(w,1)] = 0
+    w[(numpy.abs(w - 1) < tol) | (numpy.abs(w) < tol)] = 0
+    return matrix(w)
 
 class Jacobian(object):
     r"""The Jacobian of a Riemann Surface.
@@ -166,7 +172,7 @@ class Jacobian(object):
     eval
 
     """
-    def __init__(self, X):
+    def __init__(self, X, tol=1e-8):
         r"""Initialize using a :class:`RiemannSurface`.
 
         Parameters
@@ -178,14 +184,15 @@ class Jacobian(object):
         Omega = X.riemann_matrix()
         g = X.genus()
 
-        M = numpy.zeros((2*g,2*g), dtype=numpy.double)
-        M[:g,:g] = numpy.eye(g)  # upper left block = I
-        M[:g,g:] = Omega.real    # upper right block = Re(Omega)
-        M[g:,g:] = Omega.imag    # lower right block = Im(Omega)
+        M = matrix(RR(), 2*g, 2*g)
+        M[:g,:g] = identity_matrix(g)  # upper left block = I
+        M[:g,g:] = Re(Omega)    # upper right block = Re(Omega)
+        M[g:,g:] = Im(Omega)    # lower right block = Im(Omega)
 
         self.Omega = Omega
         self.M = M
         self.g = g
+        self.tol = tol
 
     def __call__(self, *args, **kwds):
         r"""Alias to :meth:`eval`."""
@@ -205,9 +212,9 @@ class Jacobian(object):
             The vector z reduced modulo the lattice Lambda.
         """
         alpha, beta = self.components(z)
-        alpha = fractional_part(alpha)
-        beta = fractional_part(beta)
-        zmod = alpha + numpy.dot(self.Omega, beta)
+        alpha = fractional_part(alpha, self.tol)
+        beta = fractional_part(beta, self.tol)
+        zmod = alpha + self.Omega * beta #numpy.dot(self.Omega, beta)
         return zmod
 
     def components(self, z):
@@ -236,12 +243,15 @@ class Jacobian(object):
         # reduces z = alpha + Omega*beta into its fractional components alpha
         # and beta
         g = self.g
-        w = numpy.zeros(2*g, dtype=numpy.double)
-        w[:g] = z.real[:]
-        w[g:] = z.imag[:]
+        #w = matrix(RR(), 2*g, 1)
+        z = matrix(numpy.reshape(z, (g, 1)))
+        #w[:g] = Re(z)[:]
+        #w[g:] = Im(z)[:]
+        w = matrix(numpy.concatenate([numpy.array(Re(z)).ravel(),
+                                      numpy.array(Im(z)).ravel()]).reshape(-1,1))
 
         # solve linear system to decompose z = z1 + Omega z2
-        v = numpy.linalg.solve(self.M,w)
+        v = self.M.solve_right(w)
 
         # round to the nearest 15 digits due to possible floating point error
         # in the components. see note in description.
@@ -343,7 +353,8 @@ class AbelMap_Function(object):
         D = args[0]
         X = D.RS
         g = X.genus()
-        value = numpy.zeros(g, dtype=numpy.complex)
+        #value = numpy.zeros(g, dtype=numpy.complex)
+        value = zero_matrix(CC(), g, 1)
         for P,n in D:
             Pvalue = self._eval_primitive(P)
             value += n*Pvalue
@@ -356,8 +367,9 @@ class AbelMap_Function(object):
         # with every evaluation
         J = Jacobian(X)
         tau = X.period_matrix()
-        A = tau[:g,:g]
-        value = numpy.linalg.solve(A,value)
+        A = matrix(tau)[:g,:g]
+        #value = numpy.linalg.solve(A,value)
+        value = A.solve_right(value)
         return J(value)
 
     @cached_method
@@ -382,12 +394,14 @@ class AbelMap_Function(object):
         X = P.RS
         genus = X.genus()
         if P == X.base_place:
-            value = numpy.zeros(genus, dtype=numpy.complex)
+            value = zero_matrix(CC(), genus, 1)
+            #value = numpy.zeros(genus, dtype=numpy.complex)
         else:
             gamma = X.path(P)
             omega = X.differentials
-            value = numpy.array([X.integrate(omegai,gamma)
-                                 for omegai in omega], dtype=numpy.complex)
+            #value = numpy.array([X.integrate(omegai,gamma)
+            #                     for omegai in omega], dtype=numpy.complex)
+            value = matrix([X.integrate(omegai,gamma) for omegai in omega]).T
         return value
 
 AbelMap = AbelMap_Function()

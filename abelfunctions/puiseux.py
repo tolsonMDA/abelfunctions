@@ -665,7 +665,7 @@ class PuiseuxTSeries(object):
         self._regular_order = self._p.degree(x)
 
         # extend to have at least two elements
-        self.extend(nterms=1)
+        self.extend(order=order, nterms=1)
 
         # the curve, x-part, and terms output by puiseux make the puiseux
         # series unique. any mutability only adds terms

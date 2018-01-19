@@ -22,7 +22,7 @@ from abelfunctions.singularities import genus
 
 from . import ComplexField as CC
 
-from sage.all import QQbar, infinity
+from sage.all import QQbar, infinity, Matrix
 from sage.misc.cachefunc import cached_function, cached_method
 
 
@@ -411,7 +411,7 @@ class RiemannSurface(object):
                                for k in range(m))
         return tau
 
-    @cached_method
+    #@cached_method
     def riemann_matrix(self):
         r"""Returns the Riemann matrix of the Riemann surface.
 
@@ -434,7 +434,10 @@ class RiemannSurface(object):
         """
         g = self.genus()
         tau = self.period_matrix()
+        # Convert to sage matrix if necessary
+        if isinstance(tau, numpy.ndarray):
+            tau = Matrix(CC(), numpy.ascontiguousarray(tau))
         A = tau[:,:g]
         B = tau[:,g:]
-        omega = numpy.dot(scipy.linalg.inv(A), B)
+        omega = A.inverse() * B
         return omega

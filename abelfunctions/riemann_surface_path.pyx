@@ -54,7 +54,7 @@ from abelfunctions import ComplexField as CDF
 import mpmath
 
 from sage.all import (
-    QQ, QQbar, infinity, fast_callable, cached_method, cached_function)
+    QQ, QQbar, infinity, fast_callable, cached_method, cached_function, Rational, sqrt)
 from sage.symbolic.constants import pi as PI
 from sage.functions.other import real_part, imag_part
 from sage.plot.line import line
@@ -952,6 +952,7 @@ cdef class RiemannSurfacePathPuiseux(RiemannSurfacePathPrimitive):
 # Smale's Alpha Theory-based Riemann Surface Paths #
 ####################################################
 ###cpdef double ABELFUNCTIONS_SMALE_ALPHA0 = 1.1884471871911697 # = (13-2*sqrt(17))/4
+ABELFUNCTIONS_SMALE_ALPHA0 = (13-2*sqrt(17))/4
 
 cdef int factorial(int n):
     cdef int result = 1
@@ -1066,7 +1067,7 @@ cdef object smale_gamma(Wrapper_el[:] df, object xip1, object yij, int degree):
         dfn = df[n]
         numer = numpy.abs(dfn(xip1, yij))
         gamman = numer / (factorial(n)*numpy.abs(df1y))
-        gamman = gamman**(CDF(1.0).real()/(n-CDF(1.0).real()))
+        gamman = gamman**(Rational(1.0)/(n-Rational(1)))
         if gamman > gamma:
             gamma = gamman
     return gamma
@@ -1165,8 +1166,8 @@ cdef class RiemannSurfacePathSmale(RiemannSurfacePathPrimitive):
         for j in range(self._degree):
             yij = yi[j]
             alpha = smale_alpha(self._df, xip1, yij, self._degree)
-            if alpha > (13-2*(CDF(17)**CDF(0.5)))/4:
-                xiphalf = (xi + xip1)/CDF(2.0).real()
+            if alpha > ABELFUNCTIONS_SMALE_ALPHA0:
+                xiphalf = (xi + xip1)/Rational(2.0)
                 yiphalf = self.analytically_continue(xi, yi, xiphalf)
                 yip1 = self.analytically_continue(xiphalf, yiphalf, xip1)
                 return yip1
@@ -1184,7 +1185,7 @@ cdef class RiemannSurfacePathSmale(RiemannSurfacePathPrimitive):
                     # approximate solutions don't lead to distinct roots.
                     # refine the step by analytically continuing to an
                     # intermedite time
-                    xiphalf = (xi + xip1)/CDF(2.0).real()
+                    xiphalf = (xi + xip1)/Rational(2.0)
                     yiphalf = self.analytically_continue(xi, yi, xiphalf)
                     yip1 = self.analytically_continue(xiphalf, yiphalf, xip1)
                     return yip1
