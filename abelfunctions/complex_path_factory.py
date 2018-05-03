@@ -160,7 +160,7 @@ class ComplexPathFactory(object):
         discriminant_points_complex = numpy.array(rts, dtype=numpy.complex)
 
         # determine a base_point, if not specified
-        if not base_point:
+        if base_point is None:
             a = min(CC(bi).real() for bi in discriminant_points)
             a = a - 1
             aint = CC(floor(a))

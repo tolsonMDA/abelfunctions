@@ -71,6 +71,8 @@ def oscillatory_part(z, Omega, epsilon, derivs, accuracy_radius, axis):
     """
     cdef double[:] x
     cdef double[:] y
+    cdef double[:] re_z
+    cdef double[:] im_z
     cdef int g
     cdef int k
     cdef int num_vectors
@@ -111,6 +113,8 @@ def oscillatory_part(z, Omega, epsilon, derivs, accuracy_radius, axis):
     R = radius(epsilon, _T, derivs=derivs, accuracy_radius=accuracy_radius)
     S = numpy.ascontiguousarray(integer_points_python(g,R,_T))
     N = S.shape[0]
+    re_z = numpy.ascontiguousarray(z.real, dtype=numpy.double)
+    im_z = numpy.ascontiguousarray(z.imag, dtype=numpy.double)
 
     # set up storage locations and vectors
     real = <double*>malloc(sizeof(double))
@@ -126,9 +130,9 @@ def oscillatory_part(z, Omega, epsilon, derivs, accuracy_radius, axis):
 
         # compute the finite sum for each z-vector
         for k in range(num_vectors):
-            zk = z[k*g:(k+1)*g]
-            x = numpy.ascontiguousarray(zk.real, dtype=numpy.double)
-            y = numpy.ascontiguousarray(zk.imag, dtype=numpy.double)
+            #zk = z[k*g:(k+1)*g]
+            x = re_z[k*g:(k+1)*g]#numpy.ascontiguousarray(zk.real, dtype=numpy.double)
+            y = im_z[k*g:(k+1)*g]#numpy.ascontiguousarray(zk.imag, dtype=numpy.double)
             finite_sum_with_derivatives(real, imag,
                                         &X[0,0], &Yinv[0,0], &T[0,0],
                                         &x[0], &y[0], &S[0,0],

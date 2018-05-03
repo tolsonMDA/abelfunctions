@@ -39,6 +39,7 @@ from sage.all import (
     real, imag, Matrix, ZZ, QQ, GF, RDF, CDF, identity_matrix, zero_matrix)
 
 from . import ComplexField as CC
+from . import RealField as RR
 
 def Re(M):
     return M.apply_map(real)
@@ -77,9 +78,9 @@ def involution_matrix(Pa, Pb, tol=1e-4):
     solves.
     """
     g,g = Pa.dimensions()
-    R_RDF = Matrix(RDF, 2*g, 2*g)
+    R_RDF = Matrix(RR(), 2*g, 2*g)
 
-    Ig = identity_matrix(RDF, g)
+    Ig = identity_matrix(RR(), g)
     M = Im(Pb.T)*Re(Pa) - Im(Pa.T)*Re(Pb)
     Minv = M.inverse()
 
@@ -87,11 +88,11 @@ def involution_matrix(Pa, Pb, tol=1e-4):
     R_RDF[:g,g:] = -2*Re(Pa)*Minv*Im(Pa.T)
     R_RDF[g:,:g] = 2*Re(Pb)*Minv*Im(Pb.T)
     R_RDF[g:,g:] = -(2*Re(Pb)*Minv*Im(Pa.T) + Ig)
-    R = R_RDF.round().change_ring(ZZ)
+    R = R_RDF.change_ring(RDF).round().change_ring(ZZ)
 
     # sanity check: make sure that R_RDF is close to integral. we perform this
     # test here since the matrix returned should be over ZZ
-    error = (R_RDF.round() - R_RDF).norm()
+    error = (R_RDF.change_ring(RDF).round() - R_RDF).norm()
     if error > tol:
         raise ValueError("The anti-holomorphic involution matrix is not "
                          "integral. Try increasing the precision of the input "
@@ -169,16 +170,16 @@ def N1_matrix(Pa, Pb, S, tol=1e-4):
     ES, US, VS = S.smith_form()
 
     # construct the matrix N1 piece by piece
-    Nper = zero_matrix(RDF, 2*g,g)
+    Nper = zero_matrix(RR(), 2*g,g)
     Nper[:g,:] = -Re(Pb)[:,:]
     Nper[g:,:] = Re(Pa)[:,:]
     Nhat = (S1.T*Re(Pa) + S2.T*Re(Pb)).inverse()
     Ntilde = 2*US*Nper*Nhat
     N1_RDF = VS*Ntilde[:g,:]
-    N1 = N1_RDF.round().change_ring(GF(2))
+    N1 = N1_RDF.change_ring(RDF).round().change_ring(GF(2))
 
     # sanity check: N1 should be integral
-    error = (N1_RDF.round() - N1_RDF).norm()
+    error = (N1_RDF.change_ring(RDF).round() - N1_RDF).norm()
     if error > tol:
         raise ValueError("The N1 matrix is not integral. Try increasing the "
                          "precision of the input period matrices.")
